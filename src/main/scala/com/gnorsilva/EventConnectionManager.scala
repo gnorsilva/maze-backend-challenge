@@ -2,11 +2,11 @@ package com.gnorsilva
 
 import java.net.InetSocketAddress
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.io.{IO, Tcp}
 import akka.io.Tcp._
 
-class EventConnectionManager extends Actor with ActorLogging {
+class EventConnectionManager(clientManager: ActorRef) extends Actor with ActorLogging {
 
   import context.system
 
@@ -19,5 +19,10 @@ class EventConnectionManager extends Actor with ActorLogging {
       log.info(s"New connnection: $local -> $remote")
       sender() ! Register(self)
     case Received(data) =>
+      data.utf8String.lines.foreach(line => {
+        val i = line.lastIndexOf ("|")
+        val id = line.substring(i + 1).toInt
+        clientManager ! ClientEvent(id, line)
+      })
   }
 }
