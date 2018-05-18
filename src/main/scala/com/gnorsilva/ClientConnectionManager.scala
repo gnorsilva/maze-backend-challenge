@@ -24,7 +24,7 @@ class ClientConnectionManager(tcpManager: ActorRef) extends Actor with ActorLogg
     case Received(data) =>
       parseClientId(data).foreach(id => connections += (id -> sender))
     case ClientEvents(events) =>
-      events.foreach(sendToClient)
+      dispatch(events)
     case closed: ConnectionClosed =>
       removeConnection(sender)
   }
@@ -33,8 +33,11 @@ class ClientConnectionManager(tcpManager: ActorRef) extends Actor with ActorLogg
     Try(data.utf8String.stripLineEnd.trim.toInt) toOption
   }
 
-  def sendToClient: ClientEvent => _ = { event: ClientEvent =>
-    connections.get(event.clientId).foreach(_ ! Write(ByteString(s"${event.message}\r\n")))
+  def dispatch(events: Seq[ClientEvent]): Unit = events.foreach {
+    case message: ClientMessage =>
+      connections.get(message.clientId).foreach(_ ! Write(ByteString(s"${message.payload}\r\n")))
+    case broadcast: ClientBroadcast =>
+      connections.foreach((t: (Int, ActorRef)) => t._2 ! Write(ByteString(s"${broadcast.payload}\r\n")))
   }
 
   private def removeConnection(connection: ActorRef) = {
@@ -44,11 +47,11 @@ class ClientConnectionManager(tcpManager: ActorRef) extends Actor with ActorLogg
   }
 }
 
-case class ClientEvent(eventId: Int, clientId: Int, message: String)
+trait ClientEvent
 
-object ClientEvent {
-  implicit val ord = Ordering.by(unapply)
-}
+case class ClientMessage(clientId: Int, payload: String) extends ClientEvent
+
+case class ClientBroadcast(payload: String) extends ClientEvent
 
 case class ClientEvents(events: Seq[ClientEvent])
 

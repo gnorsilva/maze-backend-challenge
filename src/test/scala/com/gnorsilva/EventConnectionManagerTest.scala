@@ -5,12 +5,12 @@ import akka.actor.{Actor, ActorRef, ActorSystem, OneForOneStrategy, Props}
 import akka.io.Tcp.Received
 import akka.testkit.{ImplicitSender, TestActors, TestKit, TestProbe}
 import akka.util.ByteString
-import org.scalatest.{BeforeAndAfterAll, FreeSpecLike, Matchers}
+import org.scalatest.{BeforeAndAfterAll, FreeSpecLike, Matchers, OneInstancePerTest}
 
 import scala.concurrent.duration._
 
 class EventConnectionManagerTest extends TestKit(ActorSystem("EventConnectionManagerTest")) with ImplicitSender
-  with FreeSpecLike with Matchers with BeforeAndAfterAll {
+  with FreeSpecLike with Matchers with BeforeAndAfterAll with OneInstancePerTest {
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
@@ -47,7 +47,7 @@ class EventConnectionManagerTest extends TestKit(ActorSystem("EventConnectionMan
     "parses Status updates events" in {
       eventManager ! Received(ByteString("634|S|32\r\n"))
 
-      expectMsg(EventBatch(Seq(StatusUpdates(634, "634|S|32", 32))))
+      expectMsg(EventBatch(Seq(StatusUpdate(634, "634|S|32", 32))))
     }
 
     "ignores unknown or non-event messages" in {

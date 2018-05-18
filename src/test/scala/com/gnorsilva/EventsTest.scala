@@ -10,13 +10,13 @@ class EventsTest extends FreeSpec with Matchers {
       Unfollow(1, "message", 12, 9),
       Broadcast(542532, "message"),
       PrivateMessage(43, "message", 32, 56),
-      StatusUpdates(634, "message", 32)
+      StatusUpdate(634, "message", 32)
     )
 
     seq.sorted.shouldBe(Seq(
       Unfollow(1, "message", 12, 9),
       PrivateMessage(43, "message", 32, 56),
-      StatusUpdates(634, "message", 32),
+      StatusUpdate(634, "message", 32),
       Follow(666, "message", 60, 50),
       Broadcast(542532, "message")
     ))

@@ -40,7 +40,7 @@ class EventConnectionManager(tcpManager: ActorRef, eventProcessor: ActorRef) ext
         case "U" => Unfollow(items(0).toInt, eventData, items(2).toInt, items(3).toInt)
         case "B" => Broadcast(items(0).toInt, eventData)
         case "P" => PrivateMessage(items(0).toInt, eventData, items(2).toInt, items(3).toInt)
-        case "S" => StatusUpdates(items(0).toInt, eventData, items(2).toInt)
+        case "S" => StatusUpdate(items(0).toInt, eventData, items(2).toInt)
         case _ => InvalidEvent
       }
     }
@@ -73,6 +73,6 @@ case class Broadcast(override val id: Int, message: String) extends Event
 
 case class PrivateMessage(override val id: Int, message: String, from: Int, to: Int) extends Event
 
-case class StatusUpdates(override val id: Int, message: String, from: Int) extends Event
+case class StatusUpdate(override val id: Int, message: String, from: Int) extends Event
 
 

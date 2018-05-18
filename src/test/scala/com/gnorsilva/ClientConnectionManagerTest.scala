@@ -6,12 +6,12 @@ import akka.actor.{Actor, ActorRef, ActorSystem, OneForOneStrategy, Props}
 import akka.io.Tcp.{Closed, Received, Write}
 import akka.testkit.{ImplicitSender, TestActors, TestKit, TestProbe}
 import akka.util.ByteString
-import org.scalatest.{BeforeAndAfterAll, FreeSpecLike, Matchers}
+import org.scalatest.{BeforeAndAfterAll, FreeSpecLike, Matchers, OneInstancePerTest}
 
 import scala.concurrent.duration._
 
 class ClientConnectionManagerTest extends TestKit(ActorSystem("ClientConnectionManagerTest")) with ImplicitSender
-  with FreeSpecLike with Matchers with BeforeAndAfterAll {
+  with FreeSpecLike with Matchers with BeforeAndAfterAll with OneInstancePerTest {
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)
@@ -23,7 +23,7 @@ class ClientConnectionManagerTest extends TestKit(ActorSystem("ClientConnectionM
 
     "sends messages to registered clients based on their Ids" in {
       clientManager ! Received(ByteString("123\r\n"))
-      clientManager ! ClientEvents(Seq(ClientEvent(1, 123, "Hello World|123")))
+      clientManager ! ClientEvents(Seq(ClientMessage(123, "Hello World|123")))
 
       expectMsg(Write(ByteString("Hello World|123\r\n")))
     }
@@ -31,7 +31,21 @@ class ClientConnectionManagerTest extends TestKit(ActorSystem("ClientConnectionM
     "does not send messages to unregistered clients" in {
       clientManager ! Received(ByteString("123\r\n"))
       clientManager ! Closed
-      clientManager ! ClientEvents(Seq(ClientEvent(1, 123, "Hello World|123")))
+      clientManager ! ClientEvents(Seq(ClientMessage(123, "Hello World|123")))
+
+      expectNoMessage(100 millis)
+    }
+
+    "sends broadcast messages to all registered clients" in {
+      clientManager ! Received(ByteString("123\r\n"))
+      clientManager ! Received(ByteString("456\r\n"))
+      clientManager ! Received(ByteString("789\r\n"))
+
+      clientManager ! ClientEvents(Seq(ClientBroadcast("Hello everyone!!!")))
+
+      expectMsg(Write(ByteString("Hello everyone!!!\r\n")))
+      expectMsg(Write(ByteString("Hello everyone!!!\r\n")))
+      expectMsg(Write(ByteString("Hello everyone!!!\r\n")))
 
       expectNoMessage(100 millis)
     }
