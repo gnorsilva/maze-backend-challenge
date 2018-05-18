@@ -23,15 +23,18 @@ class ClientConnectionManager(tcpManager: ActorRef) extends Actor with ActorLogg
       sender() ! Register(self)
     case Received(data) =>
       parseClientId(data).foreach(id => connections += (id -> sender))
-    case ClientEvent(id, event) =>
-      connections.get(id).foreach(_ ! Write(ByteString(s"$event\r\n")))
+    case ClientEvents(events) =>
+      events.foreach(sendToClient)
     case closed: ConnectionClosed =>
       removeConnection(sender)
-
   }
 
   private def parseClientId(data: ByteString): Option[Int] = {
     Try(data.utf8String.stripLineEnd.trim.toInt) toOption
+  }
+
+  def sendToClient: ClientEvent => _ = { event: ClientEvent =>
+    connections.get(event.clientId).foreach(_ ! Write(ByteString(s"${event.message}\r\n")))
   }
 
   private def removeConnection(connection: ActorRef) = {
@@ -41,4 +44,11 @@ class ClientConnectionManager(tcpManager: ActorRef) extends Actor with ActorLogg
   }
 }
 
-case class ClientEvent(clientId: Int, event: String)
+case class ClientEvent(eventId: Int, clientId: Int, message: String)
+
+object ClientEvent {
+  implicit val ord = Ordering.by(unapply)
+}
+
+case class ClientEvents(events: Seq[ClientEvent])
+

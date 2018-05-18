@@ -23,15 +23,15 @@ class ClientConnectionManagerTest extends TestKit(ActorSystem("ClientConnectionM
 
     "sends messages to registered clients based on their Ids" in {
       clientManager ! Received(ByteString("123\r\n"))
-      clientManager ! ClientEvent(123, "Hello world")
+      clientManager ! ClientEvents(Seq(ClientEvent(1, 123, "Hello World|123")))
 
-      expectMsg(Write(ByteString("Hello world\r\n")))
+      expectMsg(Write(ByteString("Hello World|123\r\n")))
     }
 
     "does not send messages to unregistered clients" in {
       clientManager ! Received(ByteString("123\r\n"))
       clientManager ! Closed
-      clientManager ! ClientEvent(123, "Hello world")
+      clientManager ! ClientEvents(Seq(ClientEvent(1, 123, "Hello World|123")))
 
       expectNoMessage(100 millis)
     }
