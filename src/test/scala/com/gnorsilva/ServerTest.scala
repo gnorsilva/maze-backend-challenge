@@ -21,4 +21,13 @@ class ServerTest extends FreeSpec with BeforeAndAfterAll with Eventually with Ma
       eventSocket.isConnected shouldBe true
     }
   }
+
+  "Server should open port 9099 for client connections" in {
+    eventually {
+      val clientOne = new Socket(InetAddress.getByName("localhost"), 9099)
+      clientOne.isConnected shouldBe true
+      val clientTwo = new Socket(InetAddress.getByName("localhost"), 9099)
+      clientTwo.isConnected shouldBe true
+    }
+  }
 }

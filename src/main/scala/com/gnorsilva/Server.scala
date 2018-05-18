@@ -7,6 +7,7 @@ object Server {
   val system = ActorSystem()
 
   def start = {
+    system.actorOf(Props(classOf[ClientConnectionManager]))
     system.actorOf(Props(classOf[EventConnectionManager]))
   }
 
