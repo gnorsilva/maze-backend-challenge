@@ -4,16 +4,14 @@ import java.net.InetSocketAddress
 
 import akka.actor.{Actor, ActorLogging, ActorRef}
 import akka.io.Tcp._
-import akka.io.{IO, Tcp}
 import akka.util.ByteString
 
 import scala.collection.mutable
+import scala.util.Try
 
-class ClientConnectionManager extends Actor with ActorLogging {
+class ClientConnectionManager(tcpManager: ActorRef) extends Actor with ActorLogging {
 
-  import context.system
-
-  IO(Tcp) ! Bind(self, new InetSocketAddress("localhost", 9099))
+  tcpManager ! Bind(self, new InetSocketAddress("localhost", 9099))
 
   val connections: mutable.HashMap[Int, ActorRef] = mutable.HashMap()
 
@@ -24,10 +22,22 @@ class ClientConnectionManager extends Actor with ActorLogging {
       log.info(s"New connnection: $local -> $remote")
       sender() ! Register(self)
     case Received(data) =>
-      val id = data.utf8String.stripLineEnd.trim.toInt
-      connections += (id -> sender)
+      parseClientId(data).foreach(id => connections += (id -> sender))
     case ClientEvent(id, event) =>
       connections.get(id).foreach(_ ! Write(ByteString(s"$event\r\n")))
+    case closed: ConnectionClosed =>
+      removeConnection(sender)
+
+  }
+
+  private def parseClientId(data: ByteString): Option[Int] = {
+    Try(data.utf8String.stripLineEnd.trim.toInt) toOption
+  }
+
+  private def removeConnection(connection: ActorRef) = {
+    connections
+      .find((t: (Int, ActorRef)) => t._2 == connection)
+      .foreach((t: (Int, ActorRef)) => connections -= t._1)
   }
 }
 
